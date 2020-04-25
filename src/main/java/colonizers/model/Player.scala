@@ -1,5 +1,5 @@
 package colonizers.model
 
-trait Player {
+case class Player(name: String) {
 
 }

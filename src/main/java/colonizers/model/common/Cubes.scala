@@ -1,4 +1,4 @@
-package colonizers.model
+package colonizers.model.common
 
 import scala.util.Random
 
