@@ -1,6 +1,6 @@
 package colonizers.model.field
 
-import colonizers.model.Player
+import colonizers.model.buildings.Building
 import colonizers.model.common.Cube6x6
 import colonizers.model.resources.ResourceType
 
@@ -16,8 +16,4 @@ trait GameField {
 
 
 case class GameFieldState(buildings: List[Building], thiefPlace: Hexagon)
-
-trait Building{
-  def player: Player
-}
 
