@@ -5,8 +5,8 @@
 - buildings
 - test game field
 - resource collection phase
----
 - resource view
+---
 - field view
 #### v0.1.2 
 - build village turn

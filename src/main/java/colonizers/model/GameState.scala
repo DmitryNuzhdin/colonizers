@@ -1,6 +1,6 @@
 package colonizers.model
 
-import colonizers.model.buildings.Building
+import colonizers.model.buildings.{Building, Village}
 import colonizers.model.field._
 import colonizers.model.resources._
 import colonizers.model.turns._
@@ -16,11 +16,11 @@ trait GameState {
 }
 
 case class InitialGameState(
-                           players: List[Player],
-                           gameField: GameField
+                             players: List[Player],
+                             gameField: GameField
                            ) extends GameState {
   override val currentPlayer: Player = players.head
-  override val buildings: List[Building] = List()
+  override val buildings: List[Building] = List(Village(players.head, gameField.hexagons.head.coordinate.intersections.head)) //TODO: remove
   override val resources: PlayersResources = PlayersResources.apply(players)
 }
 
@@ -33,9 +33,14 @@ case class AfterTurnState(
   override def gameField: GameField = previousState.gameField
   override def currentPlayer: Player =
     lastTurn match {
-    case t:ChangeCurrentPlayer => t.changeCurrentPlayer
-    case _ => previousState.currentPlayer
+      case t:ChangeCurrentPlayer => t.changeCurrentPlayer
+      case _ => previousState.currentPlayer
+    }
+  override def buildings: List[Building] = previousState.buildings
+  override def resources: PlayersResources = {
+    lastTurn match {
+      case t:ChangeResources => t.changeResources
+      case _ => previousState.resources
+    }
   }
-  override def buildings: List[Building] = ???
-  override def resources: PlayersResources = ???
 }

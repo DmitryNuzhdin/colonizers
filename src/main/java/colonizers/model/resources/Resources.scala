@@ -22,6 +22,12 @@ case class PlayersResources(data: Map[(Player, ResourceType), Int]) {
     val newAmount = apply(player, resourceType) + amount
     copy(data = data + ((player ,resourceType) -> newAmount))
   }
+
+  def ofPlayer(player: Player): Map[ResourceType, Int] = {
+    data.collect{case ((p, resourceType), amount) if p == player =>
+      (resourceType, amount)
+    }
+  }
 }
 
 object ResourceType {

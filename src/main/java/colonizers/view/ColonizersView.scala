@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 
 @Route
 @Push
-class ColonizersView(@Autowired val stateHolder: StateHolder) extends VerticalLayout{
+class ColonizersView(@Autowired val stateHolder: StateHolder) extends VerticalLayout with StateView {
 
   val playerNamePanel = new VerticalLayout(){
     val nameLabel = new Label("Player name: ")
@@ -25,16 +25,20 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends VerticalLa
     add(new HorizontalLayout(turnLabel, turn))
   }
 
+  val resourcesView = new ResourcesView
+
   val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn(Cube6x6.roll()))})
 
-  def refresh(player: Player, gameState: GameState) = {
+  def refresh(player: Player, gameState: GameState): Unit = {
     getUI.ifPresent((ui) => ui.access{() =>
       playerNamePanel.name.setText(player.name)
       playerNamePanel.turn.setText(gameState.currentPlayer.name)
+      resourcesView.refresh(gameState)
     })
   }
 
   add(playerNamePanel)
+  add(resourcesView)
   add(endTurnButton)
 
   override def onAttach(attachEvent: AttachEvent): Unit = {
@@ -46,4 +50,6 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends VerticalLa
   def preDestroy():Unit = {
     stateHolder.unRegisterView(this)
   }
+
+  override def refresh(gameState: GameState): Unit = ???
 }

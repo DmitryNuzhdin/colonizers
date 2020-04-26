@@ -1,5 +1,6 @@
 package colonizers.model
 
+import colonizers.model.field.GameField
 import colonizers.model.turns.Turn
 import colonizers.view.ColonizersView
 import org.springframework.stereotype.Component
@@ -7,7 +8,7 @@ import org.springframework.stereotype.Component
 @Component
 class StateHolder {
   val players = List(Player("p1"), Player("p2"))
-  var gameState: GameState = InitialGameState.apply(players, null)
+  var gameState: GameState = InitialGameState.apply(players, GameField.generateRandomField)
   var views:Set[ColonizersView] = Set()
 
   def registerView(colonizersView: ColonizersView): Unit = {
