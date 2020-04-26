@@ -55,7 +55,6 @@ case class SideCoordinate(hexagons: Set[HexagonCoordinate]){
 }
 
 case class Hexagon(coordinate: HexagonCoordinate, resource: Option[ResourceType], dice: Cube6x6)
-case class Intersection(coordinate: IntersectionCoordinate, port: Option[Port])
 
 case class GameField(
                       hexagons: Set[Hexagon],
@@ -64,7 +63,11 @@ case class GameField(
   def allIntersections: Set[IntersectionCoordinate] =
     hexagons.foldLeft(Set[IntersectionCoordinate]()){(set, hex) => set ++ hex.coordinate.intersections}
 
-  assert(hexagons.size == 19)
+  def apply(hexagonCoordinate: HexagonCoordinate): Option[Hexagon] = {
+    hexagons.find(_.coordinate == hexagonCoordinate)
+  }
+
+  assert(hexagons.map(_.coordinate).size == 19)
   assert(hexagons.forall(_.coordinate.isValid))
   assert{ports.keys.forall(allIntersections.contains)}
 }
@@ -76,7 +79,7 @@ object GameField {
       y <- 0 to 5
       coordinate = HexagonCoordinate(x, y) if coordinate.isValid
     } yield coordinate
-    val hexagons = coordinates.map(Hexagon(_, Some(Wood), Cube6x6.toss())).toSet
+    val hexagons = coordinates.map(Hexagon(_, Some(Wood), Cube6x6.roll())).toSet
     GameField(hexagons, Map())
   }
 }

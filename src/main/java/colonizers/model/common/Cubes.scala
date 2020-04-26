@@ -7,7 +7,7 @@ object Cube6 {
 }
 
 object Cube6x6 {
-  def toss(): Cube6x6 = Cube6x6(Cube6.toss(), Cube6.toss())
+  def roll(): Cube6x6 = Cube6x6(Cube6.toss(), Cube6.toss())
 }
 
 case class Cube6(dots: Int){

@@ -4,8 +4,8 @@
 #### v0.1.1
 - buildings
 - test game field
----
 - resource collection phase
+---
 - resource view
 - field view
 #### v0.1.2 

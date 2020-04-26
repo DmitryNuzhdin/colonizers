@@ -1,5 +1,6 @@
 package colonizers.view
 
+import colonizers.model.common.Cube6x6
 import colonizers.model.turns.EndTurn
 import colonizers.model.{GameState, Player, StateHolder}
 import com.vaadin.flow.component.button.Button
@@ -24,7 +25,7 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends VerticalLa
     add(new HorizontalLayout(turnLabel, turn))
   }
 
-  val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn)})
+  val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn(Cube6x6.roll()))})
 
   def refresh(player: Player, gameState: GameState) = {
     getUI.ifPresent((ui) => ui.access{() =>
