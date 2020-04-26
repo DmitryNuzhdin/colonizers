@@ -27,18 +27,14 @@ case class AfterTurnState(
                            previousState: GameState,
                            lastTurn: Turn
                          ) extends GameState {
-  implicit val state:GameState = this
-
+  implicit val state:GameState = previousState
   override def players: List[Player] = previousState.players
-
   override def gameField: GameField = previousState.gameField
-
-  override def currentPlayer: Player = lastTurn match {
+  override def currentPlayer: Player =
+    lastTurn match {
     case t:ChangeCurrentPlayer => t.changeCurrentPlayer
     case _ => previousState.currentPlayer
   }
-
   override def buildings: List[Building] = ???
-
   override def resources: PlayersResources = ???
 }

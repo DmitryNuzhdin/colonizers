@@ -1,6 +1,5 @@
 package colonizers
 
-import colonizers.model.turns.ChangePlayerTurn
 import colonizers.model.{InitialGameState, Player}
 
 object Tst {
@@ -10,9 +9,7 @@ object Tst {
 
     val gs = InitialGameState(List(p1,p2), null)
 
-    val newGs = gs.makeTurn(ChangePlayerTurn(p2))
 
     print(gs.currentPlayer)
-    print(newGs.currentPlayer)
   }
 }

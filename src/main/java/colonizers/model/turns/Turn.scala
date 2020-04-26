@@ -13,6 +13,10 @@ trait ChangeCurrentPlayer extends Turn {
   def changeCurrentPlayer(implicit gameState: GameState): Player
 }
 
-case class ChangePlayerTurn(player: Player) extends ChangeCurrentPlayer {
-  override def changeCurrentPlayer(implicit gameState: GameState): Player = player
+case object EndTurn extends ChangeCurrentPlayer {
+  override def changeCurrentPlayer(implicit gameState: GameState): Player = {
+    val doublePlayers = gameState.players ++ gameState.players
+    val currentIndex = doublePlayers.indexOf(gameState.currentPlayer)
+    doublePlayers(currentIndex + 1)
+  }
 }
