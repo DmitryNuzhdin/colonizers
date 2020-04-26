@@ -1,5 +1,6 @@
 package colonizers.model
 
+import colonizers.model.buildings.Building
 import colonizers.model.field._
 import colonizers.model.resources._
 import colonizers.model.turns._
