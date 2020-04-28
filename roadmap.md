@@ -14,13 +14,16 @@
 
 - build village turn
 - build town turn
-- win condition
-#### v0.1.3
-- real game field
 - roads logic/view
-- ports
-- ports view
-- bandits
-- bandits view
+- proper game start
+- win condition
+#### v0.2.0
+- bandits logic/view
+- real game field
+#### v0.2.1
+- trade
+- ports logic/view
+#### v0.2.2
 - cards
 - cards view
+#### v0.2.3
