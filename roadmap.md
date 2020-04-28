@@ -6,12 +6,14 @@
 - test game field
 - resource collection phase
 - resource view
----
 - field view
+- view of village/town
 #### v0.1.2 
+
+---
+
 - build village turn
 - build town turn
-- view of village/town
 - win condition
 #### v0.1.3
 - real game field

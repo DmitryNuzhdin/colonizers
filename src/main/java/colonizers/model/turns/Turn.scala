@@ -33,9 +33,9 @@ case class EndTurn(dice: Cube6x6) extends ChangeCurrentPlayer with ChangeResourc
       .foldLeft(gameState.resources) {case (resources, (hexagon, building)) =>
         building match {
           case Town(player, _) =>
-            resources + (player, hexagon.resource.get, 1)
-          case Village(player, _) =>
             resources + (player, hexagon.resource.get, 2)
+          case Village(player, _) =>
+            resources + (player, hexagon.resource.get, 1)
         }
       }
   }

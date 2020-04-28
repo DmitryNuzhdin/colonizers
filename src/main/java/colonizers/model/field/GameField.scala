@@ -3,6 +3,8 @@ package colonizers.model.field
 import colonizers.model.common.Cube6x6
 import colonizers.model.resources.{ResourceType, Wood}
 
+import scala.util.Random
+
 trait Port
 
 case class HexagonCoordinate(x: Int, y:Int){
@@ -74,12 +76,13 @@ case class GameField(
 
 object GameField {
   def generateRandomField: GameField = {
+    val resources = ResourceType.allKnownTypes
     val coordinates = for {
       x <- 0 to 5
       y <- 0 to 5
       coordinate = HexagonCoordinate(x, y) if coordinate.isValid
     } yield coordinate
-    val hexagons = coordinates.map(Hexagon(_, Some(Wood), Cube6x6.roll())).toSet
+    val hexagons = coordinates.map(Hexagon(_, Some(resources(Random.nextInt(resources.size))), Cube6x6.roll())).toSet
     GameField(hexagons, Map())
   }
 }

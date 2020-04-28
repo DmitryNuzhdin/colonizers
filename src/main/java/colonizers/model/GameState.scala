@@ -1,9 +1,11 @@
 package colonizers.model
 
 import colonizers.model.buildings.{Building, Village}
+import colonizers.model.common.Cube6x6
 import colonizers.model.field._
 import colonizers.model.resources._
 import colonizers.model.turns._
+import colonizers.util.RichAnys._
 
 trait GameState {
   def players: List[Player]
@@ -11,6 +13,7 @@ trait GameState {
   def currentPlayer: Player
   def buildings: List[Building]
   def resources: PlayersResources
+  def lastToss: Option[Cube6x6]
 
   def makeTurn(turn: Turn): GameState = AfterTurnState(this, turn)
 }
@@ -22,6 +25,7 @@ case class InitialGameState(
   override val currentPlayer: Player = players.head
   override val buildings: List[Building] = List(Village(players.head, gameField.hexagons.head.coordinate.intersections.head)) //TODO: remove
   override val resources: PlayersResources = PlayersResources.apply(players)
+  override def lastToss: Option[Cube6x6] = None
 }
 
 case class AfterTurnState(
@@ -43,4 +47,6 @@ case class AfterTurnState(
       case _ => previousState.resources
     }
   }
+  override def lastToss: Option[Cube6x6] =
+    lastTurn.cast[EndTurn].map{et => Some(et.dice)}.getOrElse(previousState.lastToss)
 }
