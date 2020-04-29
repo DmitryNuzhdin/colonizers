@@ -5,13 +5,13 @@ import colonizers.model.common.Cube6x6
 import colonizers.model.field._
 import colonizers.model.resources._
 import colonizers.model.turns._
-import colonizers.util.RichAnys._
+import shapeless.syntax.typeable._
 
 trait GameState {
   def players: List[Player]
   def gameField: GameField
   def currentPlayer: Player
-  def buildings: List[Building]
+  def buildings: Set[Building]
   def resources: PlayersResources
   def lastToss: Option[Cube6x6]
 
@@ -23,9 +23,9 @@ case class InitialGameState(
                              gameField: GameField
                            ) extends GameState {
   override val currentPlayer: Player = players.head
-  override val buildings: List[Building] = List(Village(players.head, gameField.hexagons.head.coordinate.intersections.head)) //TODO: remove
+  override val buildings: Set[Building] = Set(Village(players.head, gameField.hexagons.head.coordinate.intersections.head)) //TODO: remove
   override val resources: PlayersResources = PlayersResources.apply(players)
-  override def lastToss: Option[Cube6x6] = None
+  override val lastToss: Option[Cube6x6] = None
 }
 
 case class AfterTurnState(
@@ -33,20 +33,25 @@ case class AfterTurnState(
                            lastTurn: Turn
                          ) extends GameState {
   implicit val state:GameState = previousState
-  override def players: List[Player] = previousState.players
-  override def gameField: GameField = previousState.gameField
-  override def currentPlayer: Player =
+  override val players: List[Player] = previousState.players
+  override val gameField: GameField = previousState.gameField
+  override val currentPlayer: Player =
     lastTurn match {
       case t:ChangeCurrentPlayer => t.changeCurrentPlayer
       case _ => previousState.currentPlayer
     }
-  override def buildings: List[Building] = previousState.buildings
-  override def resources: PlayersResources = {
+  override val buildings: Set[Building] = {
+    lastTurn match {
+      case t:ChangeBuildings => t.changeBuildings
+      case _ => previousState.buildings
+    }
+  }
+  override val resources: PlayersResources = {
     lastTurn match {
       case t:ChangeResources => t.changeResources
       case _ => previousState.resources
     }
   }
-  override def lastToss: Option[Cube6x6] =
+  override val lastToss: Option[Cube6x6] =
     lastTurn.cast[EndTurn].map{et => Some(et.dice)}.getOrElse(previousState.lastToss)
 }

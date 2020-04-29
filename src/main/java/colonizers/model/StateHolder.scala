@@ -31,4 +31,9 @@ class StateHolder {
   def refreshViews(): Unit = {
     views.foreach(_.refresh(gameState.currentPlayer, gameState))
   }
+
+  def restart(): Unit = {
+    gameState = InitialGameState.apply(players, GameField.generateRandomField)
+    refreshViews()
+  }
 }

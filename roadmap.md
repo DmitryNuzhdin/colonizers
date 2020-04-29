@@ -9,15 +9,13 @@
 - field view
 - view of village/town
 #### v0.1.2 
-
+- roads logic/view
 ---
-
 - build village turn
 - build town turn
-- roads logic/view
 - proper game start
 - win condition
-#### v0.2.0
+#### v0.2.0 _(playable prototype)_
 - bandits logic/view
 - real game field
 #### v0.2.1
@@ -26,4 +24,5 @@
 #### v0.2.2
 - cards
 - cards view
-#### v0.2.3
+- biggest army and longest road
+#### v0.2.3 _(full game logic)_

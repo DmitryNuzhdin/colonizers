@@ -1,15 +1,16 @@
 package colonizers.view
-import colonizers.model.{GameState, Player}
-import colonizers.model.buildings.{IntersectionBuilding, Town, Village}
-import colonizers.model.field.{GameField, HexagonCoordinate, IntersectionCoordinate}
+import colonizers.model.buildings.{IntersectionBuilding, Road, Town, Village}
+import colonizers.model.field.{GameField, HexagonCoordinate, IntersectionCoordinate, SideCoordinate}
 import colonizers.model.resources._
+import colonizers.model.{GameState, Player}
 import com.vaadin.flow.component.html.Div
+import com.vaadin.flow.component.{ClickEvent, ComponentEventListener}
 import com.vaadin.flow.dom.Style
+import shapeless.syntax.typeable._
 
 
 class FieldView(gameField: GameField) extends Div {
   class HexagonView(hexagonCoordinate: HexagonCoordinate) extends Div {
-    import hexagonCoordinate._
     def style: Style = getStyle
 
     def color: String = gameField(hexagonCoordinate).flatMap(_.resource).collect{
@@ -40,6 +41,54 @@ class FieldView(gameField: GameField) extends Div {
     style.set("left", %(x))
     style.set("top", %(y))
     style.set("position", "absolute")
+    style.set("width", "10px")
+    style.set("height", "10px")
+    style.set("margin-left", "-5px")
+    style.set("margin-top", "-5px")
+    style.set("background", "grey")
+  }
+
+  class SideView(val sideCoordinate: SideCoordinate) extends Div {
+    def style: Style = getStyle
+    val (x, y) = sideXY(sideCoordinate)
+    style.set("left", %(x))
+    style.set("top", %(y))
+    style.set("position", "absolute")
+    style.set("width", "10px")
+    style.set("height", "10px")
+    style.set("margin-left", "-5px")
+    style.set("margin-top", "-5px")
+    style.set("background", "grey")
+
+    addClickListener(SideClickController)
+
+    def highlight(value: Boolean): Unit =
+      if (value) {
+        style.set("border", "3px solid yellow")
+      } else {
+        style.set("border", "none")
+      }
+  }
+
+  object SideClickController extends ComponentEventListener[ClickEvent[Div]] {
+    private var nextAction: PartialFunction[SideCoordinate, Unit] = PartialFunction.empty
+
+    def setNextAction(action: PartialFunction[SideCoordinate, Unit]): Unit = synchronized {
+      nextAction = action
+      sideViews.foreach{case (sideCoordinate, sideView) => sideView.highlight(action.isDefinedAt(sideCoordinate))}
+    }
+
+    override def onComponentEvent(event: ClickEvent[Div]): Unit = {
+      event.getSource.cast[SideView].map(_.sideCoordinate).foreach { sideCoordinate =>
+        synchronized {
+          if (nextAction.isDefinedAt(sideCoordinate)) {
+            val action = nextAction
+            setNextAction(PartialFunction.empty)
+            action(sideCoordinate)
+          }
+        }
+      }
+    }
   }
 
   def %(d: Double): String =  d.toString + "%"
@@ -60,6 +109,10 @@ class FieldView(gameField: GameField) extends Div {
     (x, y)
   }
 
+  def sideXY(sideCoordinate: SideCoordinate): (Double,Double) = {
+    sideCoordinate.intersections.map(intersectionXY).foldLeft((0.0, 0.0)){case((sx, sy),(x,y)) => (sx + x/2, sy + y/2)}
+  }
+
   val yOffset = 0.75
 
   val maxX: Int = gameField.hexagons.map(_.coordinate.x).max
@@ -76,18 +129,29 @@ class FieldView(gameField: GameField) extends Div {
       intersectionCoordinate -> new IntersectionView(intersectionCoordinate)
     }.toMap
 
+  val sideViews: Map[SideCoordinate, SideView] =
+    gameField.hexagons.flatMap(_.coordinate.sides).filter(_.intersections.forall(_.isValid)).map{sideCoordinate =>
+      sideCoordinate -> new SideView(sideCoordinate)
+    }.toMap
+
   hexagonViews.foreach{case (_, view) => add(view)}
   intersectionViews.foreach{case (_, view) => add(view)}
+  sideViews.foreach{case (_, view) => add(view)}
 
   def refresh(gameState: GameState): Unit = {
-    gameState.buildings.collect{case ib: IntersectionBuilding => ib }.foreach{ building =>
-      intersectionViews(building.intersection).setText{
-        building match {
-          case Village(Player(player), _) => s"[$player]V"
-          case Town(Player(player), _) => s"[$player]T"
+    gameState.buildings.foreach {
+      case building: IntersectionBuilding =>
+        intersectionViews(building.intersection).setText {
+          building match {
+            case Village(player, _) => s"[${player.name}]V"
+            case Town(player, _) => s"[${player.name}]T"
+          }
         }
-      }
+      case Road(player, coordinate) =>
+        sideViews(coordinate).setText(s"[${player.name}]R")
     }
+
+    SideClickController.setNextAction(PartialFunction.empty)
   }
 
   getStyle.set("position", "relative")

@@ -1,7 +1,8 @@
 package colonizers.view
 
 import colonizers.model.common.Cube6x6
-import colonizers.model.turns.EndTurn
+import colonizers.model.field.SideCoordinate
+import colonizers.model.turns.{BuildRoad, BuildVillage, EndTurn}
 import colonizers.model.{GameState, Player, StateHolder}
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.html.Label
@@ -30,11 +31,18 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
 
   val resourcesView = new ResourcesView
   val fieldView: FieldView = new FieldView(stateHolder.gameState.gameField){
-    getStyle.set("width", "400px")
-    getStyle.set("height", "400px")
+    getStyle.set("width", "1000px")
+    getStyle.set("height", "800px")
   }
 
+  val restartButton = new Button("RESTART",  (_: ClickEvent[Button]) => {stateHolder.restart()})
   val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn(Cube6x6.roll()))})
+  val buildRoadButton = new Button("Build Road", (_: ClickEvent[Button]) => {
+    fieldView.SideClickController.setNextAction{
+      case side: SideCoordinate if BuildRoad(side).isAllowed(stateHolder.gameState) => stateHolder.makeTurn(BuildRoad(side))
+    }
+  })
+
 
   def refresh(player: Player, gameState: GameState): Unit = {
     getUI.ifPresent((ui) => ui.access{() =>
@@ -49,6 +57,8 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
     add(playerNamePanel)
     add(resourcesView)
     add(endTurnButton)
+    add(buildRoadButton)
+    add(restartButton)
   })
   add(new VerticalLayout(){
     add(fieldView)

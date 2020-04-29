@@ -28,6 +28,8 @@ case class PlayersResources(data: Map[(Player, ResourceType), Int]) {
       (resourceType, amount)
     }
   }
+
+  def containsNegativeAmounts:Boolean = !data.forall{case (_, value) => value >= 0}
 }
 
 object ResourceType {

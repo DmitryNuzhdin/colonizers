@@ -43,6 +43,19 @@ case class IntersectionCoordinate(hexagonCoordinates: Set[HexagonCoordinate]){
   assert(hexagonCoordinates.forall{coordinate =>
     coordinate.adjacent.intersect(hexagonCoordinates - coordinate).size == 2
   })
+
+  def adjacentIntersections: Set[IntersectionCoordinate] = {
+    (for {
+      subset: List[HexagonCoordinate] <- hexagonCoordinates.subsets(2).map(_.toList)
+      c1 :: c2 :: Nil = subset
+      intersection <- c1.intersections.intersect(c2.intersections)
+    } yield intersection).toSet - this
+  }
+
+  def isValid: Boolean = hexagonCoordinates.exists(_.isValid)
+
+  def sides: Set[SideCoordinate] =
+    hexagonCoordinates.subsets(2).map(SideCoordinate).toSet
 }
 
 case class SideCoordinate(hexagons: Set[HexagonCoordinate]){
@@ -54,9 +67,18 @@ case class SideCoordinate(hexagons: Set[HexagonCoordinate]){
       .foldLeft(hexagons.head.adjacent){(set, hex) => set.intersect(hex.adjacent)}
       .map{c => IntersectionCoordinate(hexagons + c)}
   }
+
+  def adjacent: Set[SideCoordinate] = {
+    for {
+      hexagonCoordinate <- hexagons
+      shared <- hexagons.map(_.adjacent).reduce(_.intersect(_))
+    } yield SideCoordinate(Set(hexagonCoordinate, shared))
+  }
 }
 
-case class Hexagon(coordinate: HexagonCoordinate, resource: Option[ResourceType], dice: Cube6x6)
+case class Hexagon(coordinate: HexagonCoordinate, resource: Option[ResourceType], dice: Cube6x6) {
+  assert(coordinate.isValid)
+}
 
 case class GameField(
                       hexagons: Set[Hexagon],
