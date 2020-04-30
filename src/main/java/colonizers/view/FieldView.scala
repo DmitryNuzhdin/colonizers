@@ -13,7 +13,7 @@ class FieldView(gameField: GameField) extends Div {
   trait Highlightable extends HasStyle{
     def highlight(value: Boolean): Unit =
       if (value) {
-        getStyle.set("border", "3px solid yellow")
+        getStyle.set("border", "3px solid red")
       } else {
         getStyle.set("border", "none")
       }

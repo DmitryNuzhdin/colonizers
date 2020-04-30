@@ -24,7 +24,8 @@ class StateHolder {
   }
 
   def makeTurn(turn: Turn): Unit = {
-    gameState = gameState.makeTurn(turn)
+    assert(turn.isAllowed(gameState))
+    if (gameState.winner.isEmpty) gameState = gameState.makeTurn(turn)
     refreshViews()
   }
 

@@ -26,6 +26,10 @@ trait ChangeBuildings extends Turn {
   def changeBuildings(implicit gameState: GameState): Set[Building]
 }
 
+trait ChangeWinPoints extends Turn {
+  def changeWinPoints(implicit gameState: GameState): WinPoints
+}
+
 case class EndTurn(dice: Cube6x6) extends ChangeCurrentPlayer with ChangeResources {
   override def changeCurrentPlayer(implicit gameState: GameState): Player = {
     val doublePlayers = gameState.players ++ gameState.players
@@ -53,7 +57,8 @@ case class EndTurn(dice: Cube6x6) extends ChangeCurrentPlayer with ChangeResourc
   override def isAllowed(implicit gameState: GameState): Boolean = true
 }
 
-case class BuildVillage(intersectionCoordinate: IntersectionCoordinate) extends ChangeResources with ChangeBuildings {
+case class BuildVillage(intersectionCoordinate: IntersectionCoordinate)
+  extends ChangeResources with ChangeBuildings with ChangeWinPoints {
   override def changeResources(implicit gameState: GameState): PlayersResources = {
     val requiredResources = List(Wood, Clay, Sheep, Grain)
     requiredResources.foldLeft(gameState.resources){(resources, requiredResource) =>
@@ -63,6 +68,8 @@ case class BuildVillage(intersectionCoordinate: IntersectionCoordinate) extends 
   override def changeBuildings(implicit gameState: GameState): Set[Building] = {
     gameState.buildings + Village(gameState.currentPlayer, intersectionCoordinate)
   }
+
+  override def changeWinPoints(implicit gameState: GameState): WinPoints = gameState.winPoints + gameState.currentPlayer
 
   override def isAllowed(implicit gameState: GameState): Boolean = {
     def noBuildingsNear: Boolean = {
@@ -80,7 +87,7 @@ case class BuildVillage(intersectionCoordinate: IntersectionCoordinate) extends 
   }
 }
 
-case class UpgradeVillageToTown(village: Village) extends ChangeResources with ChangeBuildings {
+case class UpgradeVillageToTown(village: Village) extends ChangeResources with ChangeBuildings with ChangeWinPoints {
   override def changeResources(implicit gameState: GameState): PlayersResources = {
     val requiredResources = List(Grain, Grain, Rock, Rock, Rock)
     requiredResources.foldLeft(gameState.resources){(resources, requiredResource) =>
@@ -95,6 +102,8 @@ case class UpgradeVillageToTown(village: Village) extends ChangeResources with C
     isEnoughResources &&
       village.player == gameState.currentPlayer
   }
+
+  override def changeWinPoints(implicit gameState: GameState): WinPoints = gameState.winPoints + gameState.currentPlayer
 }
 
 case class BuildRoad(sideCoordinate: SideCoordinate) extends ChangeResources with ChangeBuildings {

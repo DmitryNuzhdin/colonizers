@@ -12,9 +12,9 @@
 - roads logic/view
 - build village turn
 - build town turn
+- win condition
 ---
 - proper game start
-- win condition
 #### v0.2.0 _(playable prototype)_
 - bandits logic/view
 - real game field
