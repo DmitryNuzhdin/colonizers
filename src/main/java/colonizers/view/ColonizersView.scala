@@ -1,8 +1,9 @@
 package colonizers.view
 
+import colonizers.model.buildings.{Town, Village}
 import colonizers.model.common.Cube6x6
-import colonizers.model.field.SideCoordinate
-import colonizers.model.turns.{BuildRoad, BuildVillage, EndTurn}
+import colonizers.model.field.{IntersectionCoordinate, SideCoordinate}
+import colonizers.model.turns.{BuildRoad, BuildVillage, CheatResources, EndTurn, UpgradeVillageToTown}
 import colonizers.model.{GameState, Player, StateHolder}
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.html.Label
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 @Route
 @Push
 class ColonizersView(@Autowired val stateHolder: StateHolder) extends HorizontalLayout with StateView {
+  implicit def gameState: GameState = stateHolder.gameState
 
   val playerNamePanel = new VerticalLayout(){
     val nameLabel = new Label("Player name: ")
@@ -38,10 +40,24 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
   val restartButton = new Button("RESTART",  (_: ClickEvent[Button]) => {stateHolder.restart()})
   val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn(Cube6x6.roll()))})
   val buildRoadButton = new Button("Build Road", (_: ClickEvent[Button]) => {
-    fieldView.SideClickController.setNextAction{
-      case side: SideCoordinate if BuildRoad(side).isAllowed(stateHolder.gameState) => stateHolder.makeTurn(BuildRoad(side))
+    fieldView.ClickController.setNextAction{
+      case side: SideCoordinate if BuildRoad(side).isAllowed => stateHolder.makeTurn(BuildRoad(side))
     }
   })
+  val buildVillageButton = new Button("Build Village", (_: Any) => {
+    fieldView.ClickController.setNextAction{
+      case ic: IntersectionCoordinate if BuildVillage(ic).isAllowed => stateHolder.makeTurn(BuildVillage(ic))
+    }
+  })
+  val upgradeToTownButton = new Button("Upgrade to Town", (_: Any) => {
+    val villages:Map[IntersectionCoordinate, Village] =
+      gameState.buildings.collect{case t:Village => t.intersection -> t}.toMap
+    fieldView.ClickController.setNextAction{
+      case ic: IntersectionCoordinate if villages.contains(ic) && UpgradeVillageToTown(villages(ic)).isAllowed =>
+        stateHolder.makeTurn(UpgradeVillageToTown(villages(ic)))
+    }
+  })
+  val cheatResourcesButton = new Button("CHEAT resources", (_: Any) => {stateHolder.makeTurn(CheatResources)})
 
 
   def refresh(player: Player, gameState: GameState): Unit = {
@@ -58,6 +74,9 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
     add(resourcesView)
     add(endTurnButton)
     add(buildRoadButton)
+    add(buildVillageButton)
+    add(upgradeToTownButton)
+    add(cheatResourcesButton)
     add(restartButton)
   })
   add(new VerticalLayout(){

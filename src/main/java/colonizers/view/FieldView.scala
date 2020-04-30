@@ -4,13 +4,22 @@ import colonizers.model.field.{GameField, HexagonCoordinate, IntersectionCoordin
 import colonizers.model.resources._
 import colonizers.model.{GameState, Player}
 import com.vaadin.flow.component.html.Div
-import com.vaadin.flow.component.{ClickEvent, ComponentEventListener}
+import com.vaadin.flow.component.{ClickEvent, ComponentEventListener, HasStyle}
 import com.vaadin.flow.dom.Style
 import shapeless.syntax.typeable._
 
 
 class FieldView(gameField: GameField) extends Div {
-  class HexagonView(hexagonCoordinate: HexagonCoordinate) extends Div {
+  trait Highlightable extends HasStyle{
+    def highlight(value: Boolean): Unit =
+      if (value) {
+        getStyle.set("border", "3px solid yellow")
+      } else {
+        getStyle.set("border", "none")
+      }
+  }
+
+  class HexagonView(val hexagonCoordinate: HexagonCoordinate) extends Div with Highlightable {
     def style: Style = getStyle
 
     def color: String = gameField(hexagonCoordinate).flatMap(_.resource).collect{
@@ -33,9 +42,13 @@ class FieldView(gameField: GameField) extends Div {
     style.set("position", "absolute")
     style.set("box-sizing", "border-box")
     setText(gameField(hexagonCoordinate).map(_.dice.dots.toString).getOrElse(""))
+
+    override def highlight(value: Boolean): Unit = {}
+
+    addClickListener(ClickController)
   }
 
-  class IntersectionView(intersectionCoordinate: IntersectionCoordinate) extends Div {
+  class IntersectionView(val intersectionCoordinate: IntersectionCoordinate) extends Div with Highlightable {
     def style: Style = getStyle
     val (x, y) = intersectionXY(intersectionCoordinate)
     style.set("left", %(x))
@@ -46,9 +59,11 @@ class FieldView(gameField: GameField) extends Div {
     style.set("margin-left", "-5px")
     style.set("margin-top", "-5px")
     style.set("background", "grey")
+
+    addClickListener(ClickController)
   }
 
-  class SideView(val sideCoordinate: SideCoordinate) extends Div {
+  class SideView(val sideCoordinate: SideCoordinate) extends Div with Highlightable {
     def style: Style = getStyle
     val (x, y) = sideXY(sideCoordinate)
     style.set("left", %(x))
@@ -60,33 +75,39 @@ class FieldView(gameField: GameField) extends Div {
     style.set("margin-top", "-5px")
     style.set("background", "grey")
 
-    addClickListener(SideClickController)
-
-    def highlight(value: Boolean): Unit =
-      if (value) {
-        style.set("border", "3px solid yellow")
-      } else {
-        style.set("border", "none")
-      }
+    addClickListener(ClickController)
   }
 
-  object SideClickController extends ComponentEventListener[ClickEvent[Div]] {
-    private var nextAction: PartialFunction[SideCoordinate, Unit] = PartialFunction.empty
+  object ClickController extends ComponentEventListener[ClickEvent[Div]] {
+    private var nextAction: PartialFunction[Any, Unit] = PartialFunction.empty
 
-    def setNextAction(action: PartialFunction[SideCoordinate, Unit]): Unit = synchronized {
+    def setNextAction(action: PartialFunction[Any, Unit]): Unit = synchronized {
       nextAction = action
-      sideViews.foreach{case (sideCoordinate, sideView) => sideView.highlight(action.isDefinedAt(sideCoordinate))}
+
+      def highlight(pair: (Any, Highlightable)): Unit = {
+        val (coordinate, view) = pair
+        view.highlight(action.isDefinedAt(coordinate))
+      }
+
+      sideViews.foreach(highlight)
+      intersectionViews.foreach(highlight)
+      hexagonViews.foreach(highlight)
     }
 
     override def onComponentEvent(event: ClickEvent[Div]): Unit = {
-      event.getSource.cast[SideView].map(_.sideCoordinate).foreach { sideCoordinate =>
-        synchronized {
-          if (nextAction.isDefinedAt(sideCoordinate)) {
-            val action = nextAction
-            setNextAction(PartialFunction.empty)
-            action(sideCoordinate)
-          }
+      def performAction(value: Any): Unit = synchronized {
+        if (nextAction.isDefinedAt(value)) {
+          val action = nextAction
+          setNextAction(PartialFunction.empty)
+          action(value)
         }
+      }
+
+      event.getSource match {
+        case sideView: SideView => performAction(sideView.sideCoordinate)
+        case hexagonView: HexagonView => performAction(hexagonView.hexagonCoordinate)
+        case intersectionView: IntersectionView => performAction(intersectionView.intersectionCoordinate)
+        case _ =>
       }
     }
   }
@@ -151,7 +172,7 @@ class FieldView(gameField: GameField) extends Div {
         sideViews(coordinate).setText(s"[${player.name}]R")
     }
 
-    SideClickController.setNextAction(PartialFunction.empty)
+    ClickController.setNextAction(PartialFunction.empty)
   }
 
   getStyle.set("position", "relative")

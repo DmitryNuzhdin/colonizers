@@ -10,9 +10,9 @@
 - view of village/town
 #### v0.1.2 
 - roads logic/view
----
 - build village turn
 - build town turn
+---
 - proper game start
 - win condition
 #### v0.2.0 _(playable prototype)_

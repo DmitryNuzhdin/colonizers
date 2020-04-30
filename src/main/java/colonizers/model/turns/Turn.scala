@@ -5,7 +5,6 @@ import colonizers.model.common.Cube6x6
 import colonizers.model._
 import colonizers.model.field.{IntersectionCoordinate, SideCoordinate}
 import colonizers.model.resources._
-//import colonizers.util.RichAnys._
 import shapeless.syntax.typeable._
 
 sealed trait Turn {
@@ -135,4 +134,16 @@ case class BuildRoad(sideCoordinate: SideCoordinate) extends ChangeResources wit
       sideIsEmpty &&
       sideConnected
   }
+}
+
+case object CheatResources extends ChangeResources {
+  override def changeResources(implicit gameState: GameState): PlayersResources = {
+    (for {
+      resource <- ResourceType.allKnownTypes
+      player <- gameState.players
+    } yield (player, resource)).foldLeft(gameState.resources){case (resources, (player, resource)) =>
+      resources + (player, resource, 1)}
+  }
+
+  override def isAllowed(implicit gameState: GameState): Boolean = true
 }
