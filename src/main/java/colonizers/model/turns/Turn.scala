@@ -42,7 +42,7 @@ case class EndTurn(dice: Cube6x6) extends ChangeCurrentPlayer with ChangeResourc
       building <- gameState.buildings.flatMap(_.cast[IntersectionBuilding])
       hexagonCoordinate <- building.intersection.hexagonCoordinates
       hexagon <- gameState.gameField(hexagonCoordinate)
-      if hexagon.dice.dots == dice.dots && hexagon.resource.isDefined
+      if hexagon.dice == dice.dots && hexagon.resource.isDefined
     } yield (hexagon, building))
       .foldLeft(gameState.resources) {case (resources, (hexagon, building)) =>
         building match {

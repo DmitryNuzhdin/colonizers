@@ -13,8 +13,9 @@
 - build village turn
 - build town turn
 - win condition
+- proper generated game field
 ---
-- proper game start
+- game start phase
 #### v0.2.0 _(playable prototype)_
 - bandits logic/view
 - real game field

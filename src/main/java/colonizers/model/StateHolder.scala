@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 @Component
 class StateHolder {
   val players = List(Player("p1"), Player("p2"))
-  var gameState: GameState = InitialGameState.apply(players, GameField.generateRandomField)
+  var gameState: GameState = InitialGameState.apply(players, GameField.generateBalancedRandomField)
   var views:Set[ColonizersView] = Set()
 
   def registerView(colonizersView: ColonizersView): Unit = {
@@ -34,7 +34,7 @@ class StateHolder {
   }
 
   def restart(): Unit = {
-    gameState = InitialGameState.apply(players, GameField.generateRandomField)
+    gameState = InitialGameState.apply(players, GameField.generateBalancedRandomField)
     refreshViews()
   }
 }

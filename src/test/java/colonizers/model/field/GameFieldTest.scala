@@ -33,8 +33,8 @@ class GameFieldTest extends AnyFlatSpec {
     SideCoordinate(Set(coordinate00, coordinate10))
   }
 
-  "GameField" should "generate random field" in {
-    GameField.generateRandomField
+  "GameField" should "generate random balanced field" in {
+    GameField.generateBalancedRandomField
   }
 
   "IntersectionCoordinate" should "have 3 adjacent" in {

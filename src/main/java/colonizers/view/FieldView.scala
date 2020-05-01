@@ -41,7 +41,7 @@ class FieldView(gameField: GameField) extends Div {
 
     style.set("position", "absolute")
     style.set("box-sizing", "border-box")
-    setText(gameField(hexagonCoordinate).map(_.dice.dots.toString).getOrElse(""))
+    setText(gameField(hexagonCoordinate).map(_.dice.toString).getOrElse(""))
 
     override def highlight(value: Boolean): Unit = {}
 

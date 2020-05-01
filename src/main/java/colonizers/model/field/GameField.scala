@@ -1,8 +1,9 @@
 package colonizers.model.field
 
 import colonizers.model.common.Cube6x6
-import colonizers.model.resources.{ResourceType, Wood}
+import colonizers.model.resources._
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 trait Port
@@ -76,7 +77,7 @@ case class SideCoordinate(hexagons: Set[HexagonCoordinate]){
   }
 }
 
-case class Hexagon(coordinate: HexagonCoordinate, resource: Option[ResourceType], dice: Cube6x6) {
+case class Hexagon(coordinate: HexagonCoordinate, resource: Option[ResourceType], dice: Int) {
   assert(coordinate.isValid)
 }
 
@@ -97,14 +98,41 @@ case class GameField(
 }
 
 object GameField {
-  def generateRandomField: GameField = {
-    val resources = ResourceType.allKnownTypes
+  @tailrec
+  def generateBalancedRandomField: GameField = {
+    val field = generateRandomField
+    val h6 = field.hexagons.find(_.dice == 6).get
+    val h8 = field.hexagons.find(_.dice == 8).get
+    val isBalanced = !h6.coordinate.adjacent.contains(h8.coordinate)
+    if (isBalanced)
+      field
+    else
+      generateBalancedRandomField
+  }
+
+  private def generateRandomField: GameField = {
+    val resources = Random.shuffle(
+      List((Wood, 4), (Sheep, 4), (Grain, 4), (Clay, 3), (Rock, 3))
+        .flatMap{case (rt, number) => (1 to number).map(_ => rt) }
+    )
+    val shuffledResources = Random.shuffle(resources)
     val coordinates = for {
       x <- 0 to 5
       y <- 0 to 5
       coordinate = HexagonCoordinate(x, y) if coordinate.isValid
     } yield coordinate
-    val hexagons = coordinates.map(Hexagon(_, Some(resources(Random.nextInt(resources.size))), Cube6x6.roll())).toSet
+    val diceNumbers = Random.shuffle(List(2,2,3,3,4,4,5,5,6,8,9,9,10,10,11,11,12,12))
+    val resourceCoordinates = (coordinates.toSet - HexagonCoordinate(2, 2)).toList
+    assert(resourceCoordinates.size == shuffledResources.size)
+    assert(resourceCoordinates.size == diceNumbers.size)
+
+    val randomHexagons : Set[Hexagon] = resourceCoordinates.lazyZip(shuffledResources).lazyZip(diceNumbers)
+      .map{case (coordinate, resource, dice) => Hexagon(coordinate, Some(resource), dice)}.toSet
+
+    val hexagons = randomHexagons + Hexagon(HexagonCoordinate(2, 2), None, 7)
+
+    assert(hexagons.size == 19)
+
     GameField(hexagons, Map())
   }
 }
