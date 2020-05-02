@@ -2,7 +2,7 @@ package colonizers.model.turns
 
 import colonizers.model.buildings._
 import colonizers.model.common.Cube6x6
-import colonizers.model._
+import colonizers.model.{GamePhase, _}
 import colonizers.model.field.{IntersectionCoordinate, SideCoordinate}
 import colonizers.model.resources._
 import shapeless.syntax.typeable._
@@ -30,19 +30,41 @@ trait ChangeWinPoints extends Turn {
   def changeWinPoints(implicit gameState: GameState): WinPoints
 }
 
-case class EndTurn(dice: Cube6x6) extends ChangeCurrentPlayer with ChangeResources {
+trait ChangeGamePhase extends Turn {
+  def changeGamePhase(implicit gameState: GameState): GamePhase.Value
+}
+
+trait ChangeLastRoll extends Turn {
+  def changeLastRoll(implicit gameState: GameState): Option[Cube6x6]
+}
+
+trait MainPhaseTurn extends Turn {
+  override def isAllowed(implicit gameState: GameState): Boolean =
+    gameState.mainPhase && isAllowedOnMainPhase
+  def isAllowedOnMainPhase(implicit gameState: GameState): Boolean
+}
+
+object EndTurn extends MainPhaseTurn with ChangeCurrentPlayer with ChangeLastRoll {
+
   override def changeCurrentPlayer(implicit gameState: GameState): Player = {
     val doublePlayers = gameState.players ++ gameState.players
     val currentIndex = doublePlayers.indexOf(gameState.currentPlayer)
     doublePlayers(currentIndex + 1)
   }
 
+  override def changeLastRoll(implicit gameState: GameState): Option[Cube6x6] = None
+
+  override def isAllowedOnMainPhase(implicit gameState: GameState): Boolean =
+    gameState.lastRoll.isDefined
+}
+
+case class RollCubes(roll: Cube6x6) extends MainPhaseTurn with ChangeResources with ChangeLastRoll {
   override def changeResources(implicit gameState: GameState): PlayersResources = {
     (for {
       building <- gameState.buildings.flatMap(_.cast[IntersectionBuilding])
       hexagonCoordinate <- building.intersection.hexagonCoordinates
       hexagon <- gameState.gameField(hexagonCoordinate)
-      if hexagon.dice == dice.dots && hexagon.resource.isDefined
+      if hexagon.dice == roll.dots && hexagon.resource.isDefined
     } yield (hexagon, building))
       .foldLeft(gameState.resources) {case (resources, (hexagon, building)) =>
         building match {
@@ -54,11 +76,13 @@ case class EndTurn(dice: Cube6x6) extends ChangeCurrentPlayer with ChangeResourc
       }
   }
 
-  override def isAllowed(implicit gameState: GameState): Boolean = true
+  override def changeLastRoll(implicit gameState: GameState): Option[Cube6x6] = Some(roll)
+
+  override def isAllowedOnMainPhase(implicit gameState: GameState): Boolean = gameState.lastRoll.isEmpty
 }
 
-case class BuildVillage(intersectionCoordinate: IntersectionCoordinate)
-  extends ChangeResources with ChangeBuildings with ChangeWinPoints {
+case class BuildVillage(intersectionCoordinate: IntersectionCoordinate) extends MainPhaseTurn
+  with ChangeResources with ChangeBuildings with ChangeWinPoints {
   override def changeResources(implicit gameState: GameState): PlayersResources = {
     val requiredResources = List(Wood, Clay, Sheep, Grain)
     requiredResources.foldLeft(gameState.resources){(resources, requiredResource) =>
@@ -71,14 +95,19 @@ case class BuildVillage(intersectionCoordinate: IntersectionCoordinate)
 
   override def changeWinPoints(implicit gameState: GameState): WinPoints = gameState.winPoints + gameState.currentPlayer
 
-  override def isAllowed(implicit gameState: GameState): Boolean = {
+  def connectedToRoad(implicit gameState: GameState): Boolean =
+    gameState.buildings.collect{case r:Road if intersectionCoordinate.sides.contains(r.sideCoordinate) => r}.nonEmpty
+
+  def noBuildingsNear(implicit gameState: GameState): Boolean = {
+    val nearestIntersections = (intersectionCoordinate.adjacentIntersections + intersectionCoordinate).filter(_.isValid)
+    gameState.buildings.collect{case ib:IntersectionBuilding => ib.intersection}.intersect(nearestIntersections).isEmpty
+  }
+
+  override def isAllowedOnMainPhase(implicit gameState: GameState): Boolean = {
     def noBuildingsNear: Boolean = {
       val nearestIntersections = (intersectionCoordinate.adjacentIntersections + intersectionCoordinate).filter(_.isValid)
       gameState.buildings.collect{case ib:IntersectionBuilding => ib.intersection}.intersect(nearestIntersections).isEmpty
     }
-
-    def connectedToRoad: Boolean =
-      gameState.buildings.flatMap(_.cast[Road]).exists(road => intersectionCoordinate.sides.contains(road.sideCoordinate))
 
     intersectionCoordinate.isValid &&
       isEnoughResources &&
@@ -87,7 +116,7 @@ case class BuildVillage(intersectionCoordinate: IntersectionCoordinate)
   }
 }
 
-case class UpgradeVillageToTown(village: Village) extends ChangeResources with ChangeBuildings with ChangeWinPoints {
+case class UpgradeVillageToTown(village: Village) extends MainPhaseTurn with ChangeResources with ChangeBuildings with ChangeWinPoints {
   override def changeResources(implicit gameState: GameState): PlayersResources = {
     val requiredResources = List(Grain, Grain, Rock, Rock, Rock)
     requiredResources.foldLeft(gameState.resources){(resources, requiredResource) =>
@@ -98,15 +127,15 @@ case class UpgradeVillageToTown(village: Village) extends ChangeResources with C
     gameState.buildings - village + village.upgradeToTown
   }
 
-  override def isAllowed(implicit gameState: GameState): Boolean = {
+  override def changeWinPoints(implicit gameState: GameState): WinPoints = gameState.winPoints + gameState.currentPlayer
+
+  override def isAllowedOnMainPhase(implicit gameState: GameState): Boolean = {
     isEnoughResources &&
       village.player == gameState.currentPlayer
   }
-
-  override def changeWinPoints(implicit gameState: GameState): WinPoints = gameState.winPoints + gameState.currentPlayer
 }
 
-case class BuildRoad(sideCoordinate: SideCoordinate) extends ChangeResources with ChangeBuildings {
+case class BuildRoad(sideCoordinate: SideCoordinate) extends MainPhaseTurn with ChangeResources with ChangeBuildings {
   override def changeResources(implicit gameState: GameState): PlayersResources = {
     val requiredResources = List(Wood, Clay)
     requiredResources.foldLeft(gameState.resources){(resources, requiredResource) =>
@@ -117,31 +146,68 @@ case class BuildRoad(sideCoordinate: SideCoordinate) extends ChangeResources wit
     gameState.buildings + Road(gameState.currentPlayer, sideCoordinate)
   }
 
-  override def isAllowed(implicit gameState: GameState): Boolean = {
-    def sideIsEmpty =
-      !gameState.buildings.collect { case r: Road => r.sideCoordinate }.contains(sideCoordinate)
-
-    def sideConnected: Boolean = {
-      def connectedToBuilding =
-        gameState.buildings.flatMap {_.cast[IntersectionBuilding]}.exists { ib =>
-          ib.player == gameState.currentPlayer && sideCoordinate.intersections.contains(ib.intersection)
-        }
-      def connectedToRoad = {
-        val roadOpt: Set[Road] = gameState.buildings.flatMap {
-          _.cast[Road]
-        }
-
-        roadOpt.exists { road =>
-          road.player == gameState.currentPlayer && sideCoordinate.adjacent.contains(road.sideCoordinate)
-        }
-      }
-
-      connectedToBuilding || connectedToRoad
+  def connectedToBuilding(implicit gameState: GameState): Boolean =
+    gameState.buildings.flatMap {_.cast[IntersectionBuilding]}.exists { ib =>
+      ib.player == gameState.currentPlayer && sideCoordinate.intersections.contains(ib.intersection)
     }
 
+  def connectedToRoad(implicit gameState: GameState): Boolean = {
+    val roadOpt: Set[Road] = gameState.buildings.flatMap {
+      _.cast[Road]
+    }
+
+    roadOpt.exists { road =>
+      road.player == gameState.currentPlayer && sideCoordinate.adjacent.contains(road.sideCoordinate)
+    }
+  }
+
+  def sideIsEmpty(implicit gameState: GameState): Boolean =
+    !gameState.buildings.collect { case r: Road => r.sideCoordinate }.contains(sideCoordinate)
+
+  override def isAllowedOnMainPhase(implicit gameState: GameState): Boolean = {
     isEnoughResources &&
       sideIsEmpty &&
-      sideConnected
+      (connectedToBuilding || connectedToRoad)
+  }
+}
+
+case class InitialVillagePlacement(intersectionCoordinate: IntersectionCoordinate)
+  extends ChangeBuildings  with ChangeWinPoints {
+  override def changeBuildings(implicit gameState: GameState): Set[Building] = {
+    gameState.buildings + Village(gameState.currentPlayer, intersectionCoordinate)
+  }
+
+  override def changeWinPoints(implicit gameState: GameState): WinPoints =
+    gameState.winPoints + gameState.currentPlayer
+
+  override def isAllowed(implicit gameState: GameState): Boolean = {
+    val buildVillage = BuildVillage(intersectionCoordinate)
+    gameState.gamePhase == GamePhase.Preparation &&
+      gameState.previousTurn.collect{case ivp:InitialVillagePlacement => ivp}.isEmpty &&
+      buildVillage.noBuildingsNear
+  }
+}
+
+case class InitialRoadPlacement(sideCoordinate: SideCoordinate)
+  extends ChangeBuildings with ChangeCurrentPlayer with ChangeGamePhase {
+  override def changeBuildings(implicit gameState: GameState): Set[Building] =
+    gameState.buildings + Road(gameState.currentPlayer, sideCoordinate)
+
+  override def changeCurrentPlayer(implicit gameState: GameState): Player = {
+    val playersDidTurns: Int = (gameState.previousTurns.size + 1) / 2
+    ((gameState.players ::: gameState.players.reverse ) :+ gameState.players.head)(playersDidTurns)
+  }
+
+  override def changeGamePhase(implicit gameState: GameState): GamePhase.Value =
+    if (gameState.previousTurns.size + 1 == gameState.players.size * 4) GamePhase.MainPhase else GamePhase.Preparation
+
+  override def isAllowed(implicit gameState: GameState): Boolean = {
+    val buildRoad = BuildRoad(sideCoordinate)
+
+    gameState.gamePhase == GamePhase.Preparation &&
+      gameState.previousTurn.collect{case ivp:InitialVillagePlacement => ivp}.isDefined &&
+      buildRoad.sideIsEmpty &&
+      (buildRoad.connectedToRoad || buildRoad.connectedToBuilding)
   }
 }
 

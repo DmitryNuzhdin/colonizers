@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class StateHolder {
-  val players = List(Player("p1"), Player("p2"))
+  val players = List(Player("p1"), Player("p2"), Player("p3"), Player("p4"))
   var gameState: GameState = InitialGameState.apply(players, GameField.generateBalancedRandomField)
   var views:Set[ColonizersView] = Set()
 

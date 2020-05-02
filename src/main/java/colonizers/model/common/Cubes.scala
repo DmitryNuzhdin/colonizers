@@ -3,11 +3,11 @@ package colonizers.model.common
 import scala.util.Random
 
 object Cube6 {
-  def toss(): Cube6 = Cube6(Random.nextInt(6) + 1)
+  def roll(): Cube6 = Cube6(Random.nextInt(6) + 1)
 }
 
 object Cube6x6 {
-  def roll(): Cube6x6 = Cube6x6(Cube6.toss(), Cube6.toss())
+  def roll(): Cube6x6 = Cube6x6(Cube6.roll(), Cube6.roll())
 }
 
 case class Cube6(dots: Int){

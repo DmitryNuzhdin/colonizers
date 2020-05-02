@@ -3,7 +3,7 @@ package colonizers.view
 import colonizers.model.buildings.{Town, Village}
 import colonizers.model.common.Cube6x6
 import colonizers.model.field.{IntersectionCoordinate, SideCoordinate}
-import colonizers.model.turns.{BuildRoad, BuildVillage, CheatResources, EndTurn, UpgradeVillageToTown}
+import colonizers.model.turns.{BuildRoad, BuildVillage, CheatResources, EndTurn, InitialRoadPlacement, InitialVillagePlacement, RollCubes, UpgradeVillageToTown}
 import colonizers.model.{GameState, Player, StateHolder}
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.html.Label
@@ -38,7 +38,8 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
   }
 
   val restartButton = new Button("RESTART",  (_: ClickEvent[Button]) => {stateHolder.restart()})
-  val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn(Cube6x6.roll()))})
+  val endTurnButton = new Button("End turn", (_: ClickEvent[Button]) => {stateHolder.makeTurn(EndTurn)})
+  val rollCubesButton = new Button("Roll cubes", (_: ClickEvent[Button]) => {stateHolder.makeTurn(RollCubes(Cube6x6.roll()))})
   val buildRoadButton = new Button("Build Road", (_: ClickEvent[Button]) => {
     fieldView.ClickController.setNextAction{
       case side: SideCoordinate if BuildRoad(side).isAllowed => stateHolder.makeTurn(BuildRoad(side))
@@ -47,6 +48,16 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
   val buildVillageButton = new Button("Build Village", (_: Any) => {
     fieldView.ClickController.setNextAction{
       case ic: IntersectionCoordinate if BuildVillage(ic).isAllowed => stateHolder.makeTurn(BuildVillage(ic))
+    }
+  })
+  val initialVillagePlaceButton = new Button("Place Village", (_: Any) => {
+    fieldView.ClickController.setNextAction{
+      case ic: IntersectionCoordinate if InitialVillagePlacement(ic).isAllowed => stateHolder.makeTurn(InitialVillagePlacement(ic))
+    }
+  })
+  val initialRoadPlaceButton = new Button("Place Road", (_: Any) => {
+    fieldView.ClickController.setNextAction{
+      case sc: SideCoordinate if InitialRoadPlacement(sc).isAllowed => stateHolder.makeTurn(InitialRoadPlacement(sc))
     }
   })
   val upgradeToTownButton = new Button("Upgrade to Town", (_: Any) => {
@@ -64,7 +75,7 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
     getUI.ifPresent((ui) => ui.access{() =>
       playerNamePanel.name.setText(player.name)
       playerNamePanel.turn.setText(gameState.currentPlayer.name)
-      playerNamePanel.lastDice.setText(gameState.lastToss.map(_.dots.toString).getOrElse(""))
+      playerNamePanel.lastDice.setText(gameState.lastRoll.map(_.dots.toString).getOrElse(""))
       resourcesView.refresh(gameState)
       fieldView.refresh(gameState)
     })
@@ -73,9 +84,12 @@ class ColonizersView(@Autowired val stateHolder: StateHolder) extends Horizontal
     add(playerNamePanel)
     add(resourcesView)
     add(endTurnButton)
+    add(rollCubesButton)
     add(buildRoadButton)
     add(buildVillageButton)
     add(upgradeToTownButton)
+    add(initialVillagePlaceButton)
+    add(initialRoadPlaceButton)
     add(cheatResourcesButton)
     add(restartButton)
   })
