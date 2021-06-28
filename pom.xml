@@ -15,7 +15,7 @@
                 <artifactId>vaadin-bom</artifactId>
                 <!-- declare the latest Vaadin version
                      as a property or directly here -->
-                <version>14.1.25</version>
+                <version>14.6.2</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
